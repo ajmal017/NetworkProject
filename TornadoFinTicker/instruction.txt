@@ -14,9 +14,9 @@
 
 
 4. Once the server is started, go to your browser and visit
-	- http://localhost:8886/
+	- http://localhost:8765/
 		or
-	- http://127.0.0.1:8886/
+	- http://127.0.0.1:8765/
 
 
 5. You should be able to see the graph
