@@ -1,0 +1,22 @@
+1. Make sure you have the Tornado library
+	- You can install it by running 
+		$ pip install tornado
+
+	- You can reference https://pypi.python.org/pypi/tornado/3.2.1 if you have any problem
+
+
+2. From terminal, navigate to the TornadoFinTicker folder
+	- You should see the files client.py and server.py inside the folder
+
+
+3. You can start the server by running
+	$ python server.py
+
+
+4. Once the server is started, go to your browser and visit
+	- http://localhost:8886/
+		or
+	- http://127.0.0.1:8886/
+
+
+5. You should be able to see the graph
