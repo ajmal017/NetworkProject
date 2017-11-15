@@ -5,42 +5,54 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
 </head>
+<!-- main graphing script  -->
 <script>
-    ws = new WebSocket("ws://localhost:8886/graph")
+    // open websocket connection
+    ws = new WebSocket("ws://localhost:8765/graph")
+    
+    
+    // On connect, request for initial graph data
     ws.onopen = function()
     {
-        // Web Socket is connected, send data using send()
-        ws.send("Request initial data"); 
-        
+        ws.send("Request initial data"); // custom protocol
     };
-		
+
+    // on message receive by event stream
     ws.onmessage = function (resp) 
     { 
+        // split by agreed delimiter `;
         var data = resp.data.split("`;")
+        
+        // if it is initial data, parse the json
         if (data[0] == "initial") {
             json = JSON.parse(data[1]);
-            console.log("initial")
-            console.log(json)
+            
+            // create a new traceline
             var trace1 = {
                 x: json.Date, 
                 y: json.Close, 
                 type: 'scatter',
             }; 
+            
+            // plot the traceline into a new graph
             Plotly.newPlot('Stocks-chart', [trace1]);
-        } else if (data[0] == "update") {
+        } 
+        // else if its part of the update function
+        else if (data[0] == "update") {
             json = JSON.parse(data[1]);
-            console.log("update")
-            console.log(json)
+            
+            // extend the trace line by the new data given
             Plotly.extendTraces('Stocks-chart', {
                 x:[json.Date], 
                 y:[json.Close]
                 }, [0])
         }
     };
-		
+
+    // on websocket close
     ws.onclose = function()
     { 
-      // websocket is closed.
+      // do nothing
     };
 </script>
 <body>

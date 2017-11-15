@@ -4,78 +4,18 @@ from tornado import websocket, web, httpserver
 import tornado.ioloop as ioloop
 import datetime, itertools, json
 
-######### CONSTANTS ###########
+######### CONSTANTS ######################
 TICK = itertools.count(2)
 CONNECTIONSLIST = set()
 priceDF = None
 PLOTRANGE = 100
-######### Web App settings ###############
+FREQ = 1
+PORT = 8765
 
-class App(web.Application):
-    def __init__(self):
-        handlers = [
-            (r'/graph', graphHandler),
-            (r'/', indexHandler)
-        ]
- 
-        settings = {
-            'template_path': 'template'
-        }
-        web.Application.__init__(self, handlers, **settings)
-        
-    
-################## Page functions ##########################
-class indexHandler(web.RequestHandler):
-    def get(self):
-        self.render('stockGraph.html')
+######### HELPER FUNCTIONS ###############
 
-
-################# main client web page ###############
-
-# self = client
-class graphHandler(websocket.WebSocketHandler):
-    
-    tick = 0
-    # For debugging purposes
-    def check_origin(self, origin):
-        return True
-    
-    def open(self):
-        # add to subscribers list
-        if self not in CONNECTIONSLIST:
-            CONNECTIONSLIST.add(self)
-            self.write_message("Welcome to SUTD SE!")
-        
-        print("client connected.")
-        print("clients = ", CONNECTIONSLIST)
-
-    def on_message(self, message):
-        if (message == "Request initial data"):
-            index = self.tick
-            print(index)
-            pRange = PLOTRANGE
-            if (index - pRange < 0):
-                pRange = index
-            elif (index > priceDF.shape[0]):
-                index = priceDF.shape[0]
-            
-            rows = priceDF.iloc[1:index]
-            #jsonified = row.to_json()
-            
-            #print(type(jsonified))
-            jsonified = json.dumps({
-                   'Date':rows["Date"].tolist(),
-                   'Close':rows["Close"].tolist()
-            })
-            jsonified = "initial`;" + jsonified
-            self.write_message(jsonified)
-    
-    def on_close(self):
-        if self in CONNECTIONSLIST:
-            CONNECTIONSLIST.remove(self)
-            
-        print("client {} disconnected.".format("test"))
-        
+# Helper function to generate data from csv file
+# only used for the beta version of the app and is very specific
 def generateData():
     import pandas as pd
     df = pd.read_csv("AAPL.csv")
@@ -86,39 +26,124 @@ def generateData():
     df = df.drop("Volume", 1)
     return df
 
+######### Web App settings ###############
+
+class App(web.Application):
+    
+    def __init__(self):
+        # Define routes
+        handlers = [
+            (r'/graph', graphHandler),
+            (r'/', indexHandler)
+        ]
+ 
+        # define directories
+        settings = {
+            'template_path': 'template'
+        }
+        
+        # Initialize Web App
+        web.Application.__init__(self, handlers, **settings)
+        
+    
+######### Page functions ##################
+
+# redirect clients going to homepage to graph page
+class indexHandler(web.RequestHandler):
+    def get(self):
+        self.render('stockGraph.html')
+
+
+######### main client web page #############
+
+# self = client
+class graphHandler(websocket.WebSocketHandler):
+    
+    tick = 0 # a local copy of the TICK variable
+    
+    # Setting check_origin to true allows host to initialize connection
+    # refer to https://stackoverflow.com/questions/24851207/tornado-403-get-warning-when-opening-websocket
+    def check_origin(self, origin):
+        return True
+    
+    def open(self):
+        
+        # add new connections to subscribers list
+        if self not in CONNECTIONSLIST:
+            CONNECTIONSLIST.add(self)
+            self.write_message("Welcome to SUTD SE!")  
+            
+        # print("client {} connected.".format(self))
+    def on_message(self, message):
+        # If new client requests initial data
+        if (message == "Request initial data"):
+            
+            # Only give latest {100} data points, defined by PLOTRANGE constant
+            index = self.tick
+            pRange = PLOTRANGE
+            if (index - pRange < 0):
+                pRange = index
+            elif (index > priceDF.shape[0]):
+                index = priceDF.shape[0]
+            
+            # Select last 100 rows
+            rows = priceDF.iloc[index-pRange:index]
+            
+            # dump to json file
+            jsonified = json.dumps({
+                   'Date':rows["Date"].tolist(),
+                   'Close':rows["Close"].tolist()
+            })
+            
+            # Add custom protocol/signature and send
+            jsonified = "initial`;" + jsonified
+            self.write_message(jsonified)
+    
+    # Remove client from subscriber list once disconnected
+    def on_close(self):
+        if self in CONNECTIONSLIST:
+            CONNECTIONSLIST.remove(self)
+        # print("client {} disconnected.".format(self))
+        
+######### CALLBACK/PERIODIC FUNCTION ###############
+
 # periodically send graph data to all clients at the same time
+# called every {1} second(s), defined by FREQ
 def sendGraphData():
     
+    # Get next tick as index and copy to GraphHandler
     index = next(TICK)
     graphHandler.tick = index
-    pRange = PLOTRANGE
-    if (index - pRange < 0):
-        pRange = index
-    elif (index > priceDF.shape[0]):
-        index = priceDF.shape[0]
     
+    # select row and jsonify, add custom protocol "update `;"
     row = priceDF.iloc[index]
     jsonified = json.dumps({
                    'Date':[row["Date"]],
                    'Close':[row["Close"]]
             })
-    #jsonified = row.to_json()
+    jsonified = "update`;" + jsonified
+    
+    # send to all clients in connectionlist    
     try:
         for client in CONNECTIONSLIST:
-            jsonified = "update`;" + jsonified
             client.write_message(jsonified)
-    except Exception as e: print(e)
+    
+    # Once done, call this function again after {1} second(s), defined by FREQ
     finally:
-        ioloop.IOLoop.instance().add_timeout(datetime.timedelta(seconds=0.5), sendGraphData)
-################### main funtion ################
+        ioloop.IOLoop.instance().add_timeout(
+                datetime.timedelta(seconds=FREQ), 
+                sendGraphData
+        )
+        
+        
+################### initializer funtion ################
 
-         
+# Default main settings
 def main():
-    PORT = 8886
     WebSocket_app = App()
     server = httpserver.HTTPServer(WebSocket_app)
     server.listen(PORT)
-    ioloop.IOLoop.instance().add_timeout(datetime.timedelta(seconds=0.5), sendGraphData)
+    ioloop.IOLoop.instance().add_timeout(datetime.timedelta(seconds=FREQ), sendGraphData)
     ioloop.IOLoop.instance().start()
         
     
