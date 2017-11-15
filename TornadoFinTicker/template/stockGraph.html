@@ -1,0 +1,50 @@
+<html>
+<head> 
+    <title>Real Time Stock Plotter</title>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+</head>
+<script>
+    ws = new WebSocket("ws://localhost:8886/graph")
+    ws.onopen = function()
+    {
+        // Web Socket is connected, send data using send()
+        ws.send("Request initial data"); 
+        
+    };
+		
+    ws.onmessage = function (resp) 
+    { 
+        var data = resp.data.split("`;")
+        if (data[0] == "initial") {
+            json = JSON.parse(data[1]);
+            console.log("initial")
+            console.log(json)
+            var trace1 = {
+                x: json.Date, 
+                y: json.Close, 
+                type: 'scatter',
+            }; 
+            Plotly.newPlot('Stocks-chart', [trace1]);
+        } else if (data[0] == "update") {
+            json = JSON.parse(data[1]);
+            console.log("update")
+            console.log(json)
+            Plotly.extendTraces('Stocks-chart', {
+                x:[json.Date], 
+                y:[json.Close]
+                }, [0])
+        }
+    };
+		
+    ws.onclose = function()
+    { 
+      // websocket is closed.
+    };
+</script>
+<body>
+<div id="Stocks-chart"> </div>
+</body>
+
+</html>

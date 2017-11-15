@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import csv
 import pandas as pd
+import pickle,json
+import numpy as np
 
 def CSVtoDF(filePath):
     df = pd.read_csv(filePath)
@@ -10,23 +11,28 @@ def CSVtoDF(filePath):
     df = df.drop("Low", 1)
     df = df.drop("Adj Close", 1)
     df = df.drop("Volume", 1)
-    row = df.iloc[[2]].to_string(header=False, index=False, index_names=False).split("\n")
-    vals = [','.join(ele.split()) for ele in row]
-    print(vals)
+    row = df.iloc[1:5]
+    jsonified = json.dumps({
+                   'Date':row["Date"].tolist(),
+                   'Close':row["Close"].tolist()
+            })
+    jsonified = "update`;"+jsonified
+    print(jsonified)
+    x = 0
+    return x
 
-def parseCSV(filePath):
-    print("Parsing CSV")
-    with open(filePath) as csvfile:
-        readCSV = csv.reader(csvfile, delimiter=',')
-        dates = []
-        prices = []
-        for row in readCSV:
-            date = row[0]
-            price = row[4]
-            print(date, price)
-            dates.append(date)
-            prices.append(price)
-        return dates,prices
+m = CSVtoDF("AAPL.csv")
+
+
+def test():
+    x = np.arange(0,np.pi*10,0.1).tolist()
+    print(x)
+    m = json.dumps({
+            'x':x[0:50],
+            'y':x[0:1]
+    })
     
-    
-CSVtoDF("AAPL.csv")
+    return m
+# print(test())
+
+
