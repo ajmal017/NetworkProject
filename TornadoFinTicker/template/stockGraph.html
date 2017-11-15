@@ -34,8 +34,19 @@
                 type: 'scatter',
             }; 
             
+			// adding graph titles
+			var layout = {
+				title: "Apple Stock Prices",
+				xaxis: {
+					title: 'Date (Mth Day Year)'
+				},
+				yaxis: {
+					title: 'Stock Price ($)'
+				}
+			};
+			
             // plot the traceline into a new graph
-            Plotly.newPlot('Stocks-chart', [trace1]);
+            Plotly.newPlot('Stocks-chart', [trace1], layout);
         } 
         // else if its part of the update function
         else if (data[0] == "update") {
