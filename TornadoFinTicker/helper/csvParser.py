@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+
+### THIS FILE IS UNUSED ####
+
+# used to debug functions and dataframes
 import pandas as pd
 import pickle,json
 import numpy as np

@@ -18,7 +18,7 @@ PORT = 8765
 # only used for the beta version of the app and is very specific
 def generateData():
     import pandas as pd
-    df = pd.read_csv("AAPL.csv")
+    df = pd.read_csv("data\AAPL.csv")
     df = df.drop("Open", 1)
     df = df.drop("High", 1)
     df = df.drop("Low", 1)
@@ -71,7 +71,7 @@ class graphHandler(websocket.WebSocketHandler):
         # add new connections to subscribers list
         if self not in CONNECTIONSLIST:
             CONNECTIONSLIST.add(self)
-            self.write_message("Welcome to SUTD SE!")  
+            self.write_message("Welcome to SUTD Stock Exchange!")  
             
         # print("client {} connected.".format(self))
     def on_message(self, message):
